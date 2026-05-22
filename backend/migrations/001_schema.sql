@@ -1,4 +1,6 @@
 -- AI Governance / Model Ops schema
+DROP TABLE IF EXISTS approval_history CASCADE;
+DROP TABLE IF EXISTS approvals CASCADE;
 DROP TABLE IF EXISTS webhook_deliveries CASCADE;
 DROP TABLE IF EXISTS webhooks CASCADE;
 DROP TABLE IF EXISTS attachments CASCADE;
@@ -326,3 +328,38 @@ CREATE TABLE webhook_deliveries (
   signature VARCHAR(200),
   delivered_at TIMESTAMP DEFAULT NOW()
 );
+
+-- ============================================================
+-- Apply pass 7: approval workflow state machine
+-- ============================================================
+
+CREATE TABLE approvals (
+  id SERIAL PRIMARY KEY,
+  approval_id   VARCHAR(120) UNIQUE NOT NULL,
+  resource_type VARCHAR(80)  NOT NULL,
+  resource_id   VARCHAR(160) NOT NULL,
+  state         VARCHAR(40)  NOT NULL DEFAULT 'pending',
+  requested_by  VARCHAR(160) NOT NULL,
+  approver_id   VARCHAR(160),
+  notes         TEXT,
+  decided_at    TIMESTAMP,
+  created_at    TIMESTAMP DEFAULT NOW(),
+  updated_at    TIMESTAMP DEFAULT NOW(),
+  CONSTRAINT approvals_state_chk
+    CHECK (state IN ('pending', 'under_review', 'approved', 'rejected'))
+);
+
+CREATE INDEX approvals_resource_idx ON approvals (resource_type, resource_id);
+CREATE INDEX approvals_state_idx    ON approvals (state);
+
+CREATE TABLE approval_history (
+  id SERIAL PRIMARY KEY,
+  approval_id  VARCHAR(120) NOT NULL,
+  from_state   VARCHAR(40),
+  to_state     VARCHAR(40) NOT NULL,
+  actor_id     VARCHAR(160) NOT NULL,
+  notes        TEXT,
+  created_at   TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX approval_history_approval_idx ON approval_history (approval_id);

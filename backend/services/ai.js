@@ -417,6 +417,110 @@ Return JSON:
   return safeJsonParse(await callOpenRouter(prompt, { maxTokens: 2400 }), { system_name, framework });
 }
 
+// ---------- 17. Red-team finding triage (Apply pass 7) ----------
+// Mirror of triage-incident, but specific to red-team findings stored in the
+// redteam_findings table. Optimised for adversarial-test interpretation.
+async function redteamTriage({ model, technique, severity, description, finding_id }) {
+  const prompt = `Triage an adversarial red-team finding against a deployed AI system.
+Input:
+- Finding ID: ${finding_id || 'unspecified'}
+- Model: ${model || 'unspecified'}
+- Attack technique: ${technique || 'unknown'}
+- Reported severity: ${severity || 'unknown'}
+- Description / payload: ${description || 'none'}
+
+Return JSON:
+{
+  "confirmed_severity": "low"|"medium"|"high"|"critical",
+  "attack_class": "prompt_injection"|"jailbreak"|"data_exfiltration"|"model_extraction"|"evasion"|"poisoning"|"other",
+  "exploitability": { "score": number, "rationale": string },
+  "blast_radius": { "users_at_risk": string, "data_at_risk": [string], "regulatory_exposure": [string] },
+  "owasp_llm_top10_refs": [string],
+  "immediate_mitigations": [{ "control": string, "owner_role": string, "due_within_hours": number, "priority": "high"|"medium"|"low" }],
+  "long_term_hardening": [{ "control": string, "framework_ref": string, "priority": "high"|"medium"|"low" }],
+  "regulatory_notification": { "required": boolean, "regimes": [string], "deadline": string },
+  "recommended_status": "open"|"mitigated"|"accepted",
+  "summary": string
+}`;
+  return safeJsonParse(await callOpenRouter(prompt), { confirmed_severity: severity || 'medium' });
+}
+
+// ---------- 18. Drift narrative (Apply pass 7) ----------
+// Longitudinal storyteller over a sequence of previous drift analyses.
+// Caller passes `model_id` plus an `analyses` array (each item is a prior
+// detect-drift result snapshot with metric values + window labels).
+async function driftNarrative({ model_id, analyses, horizon_days }) {
+  const compact = Array.isArray(analyses)
+    ? analyses.slice(0, 20).map((a, i) => ({
+        idx: i,
+        when: a.created_at || a.when || null,
+        window: a.window || null,
+        baseline: a.baselineMetric ?? a.baseline ?? null,
+        current: a.currentMetric ?? a.current ?? null,
+        signal: a.signal || null,
+        severity: a.severity || null,
+        drift_detected: a.drift_detected ?? null,
+      }))
+    : [];
+  const prompt = `Write a longitudinal drift narrative for a production model over time.
+Input:
+- Model: ${model_id || 'unspecified'}
+- Horizon (days): ${horizon_days ?? 90}
+- Prior drift analyses (most recent last): ${JSON.stringify(compact)}
+
+Return JSON:
+{
+  "model": string,
+  "horizon_days": number,
+  "trend": "stable"|"degrading"|"improving"|"oscillating"|"insufficient_data",
+  "narrative": string,
+  "inflection_points": [{ "when": string, "what_changed": string, "likely_cause": string }],
+  "metric_trajectory": [{ "when": string, "baseline": number, "current": number, "delta": number }],
+  "current_state": { "severity": "none"|"low"|"medium"|"high", "actionability": "monitor"|"investigate"|"retrain"|"rollback" },
+  "retrain_recommendation": { "recommended": boolean, "rationale": string, "estimated_lead_time_days": number },
+  "monitoring_adjustments": [{ "signal": string, "new_threshold": number, "rationale": string }],
+  "summary": string
+}`;
+  return safeJsonParse(await callOpenRouter(prompt, { maxTokens: 2200 }), { model: model_id, trend: 'insufficient_data' });
+}
+
+// ---------- 19. Bias summary (Apply pass 7) ----------
+// Multi-audit roll-up across prior bias-audit results. Caller passes
+// `model_id` and an `audits` array (prior audit-bias outputs).
+async function biasSummary({ model_id, audits, period }) {
+  const compact = Array.isArray(audits)
+    ? audits.slice(0, 25).map((a, i) => ({
+        idx: i,
+        when: a.created_at || a.when || null,
+        dataset: a.dataset || null,
+        metric: a.metric || null,
+        score: a.score ?? null,
+        assessment: a.overall_assessment || a.assessment || null,
+        ship_decision: a.ship_decision || null,
+      }))
+    : [];
+  const prompt = `Summarise multiple bias-audit runs into a single roll-up for leadership.
+Input:
+- Model: ${model_id || 'unspecified'}
+- Period: ${period || 'last 4 quarters'}
+- Prior audits: ${JSON.stringify(compact)}
+
+Return JSON:
+{
+  "model": string,
+  "period": string,
+  "audit_count": number,
+  "overall_assessment": "pass"|"warning"|"fail",
+  "dominant_disparities": [{ "subgroup_axis": string, "trend": "improving"|"stable"|"worsening", "evidence": string }],
+  "framework_coverage": { "eu_ai_act": [string], "nist_rmf": [string], "iso_42001": [string] },
+  "open_actions": [{ "action": string, "owner_role": string, "priority": "high"|"medium"|"low", "due": string }],
+  "regulator_ready_statement": string,
+  "ship_decision": "block"|"conditional"|"ship",
+  "summary": string
+}`;
+  return safeJsonParse(await callOpenRouter(prompt, { maxTokens: 2200 }), { model: model_id, overall_assessment: 'warning' });
+}
+
 module.exports = {
   callOpenRouter,
   safeJsonParse,
@@ -436,4 +540,7 @@ module.exports = {
   energyCost,
   controlMapper,
   sspDrafter,
+  redteamTriage,
+  driftNarrative,
+  biasSummary,
 };

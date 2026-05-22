@@ -40,6 +40,12 @@ import AIJailbreakTestPage from './pages/AIJailbreakTestPage';
 import AIEnergyCostPage from './pages/AIEnergyCostPage';
 import AIControlMapperPage from './pages/AIControlMapperPage';
 import AISspDrafterPage from './pages/AISspDrafterPage';
+// Apply pass 7 — backlog implementation
+import AIRedteamTriagePage from './pages/AIRedteamTriagePage';
+import AIDriftNarrativePage from './pages/AIDriftNarrativePage';
+import AIBiasSummaryPage from './pages/AIBiasSummaryPage';
+import DisclosurePackPage from './pages/DisclosurePackPage';
+import ApprovalsPage from './pages/ApprovalsPage';
 // Platform
 import WebhooksPage from './pages/WebhooksPage';
 // Custom Views (MLGov)
@@ -48,6 +54,12 @@ import CustomViewsPage from './pages/CustomViewsPage';
 import LoginPage from './pages/LoginPage';
 import { getToken, logout } from './services/api';
 import './App.css';
+
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
+import TimelineView from './pages/TimelineView';
+import ModelExceptionWaiverBoard from './pages/ModelExceptionWaiverBoard';
 
 function Shell({ onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -67,6 +79,10 @@ function Shell({ onLogout }) {
       {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
       <main className="main">
         <Routes>
+        <Route path="/insights/timeline" element={<TimelineView />} />
+        <Route path="/codex/custom-viz" element={<CodexCustomVizFeature />} />
+        <Route path="/codex/operations" element={<CodexOperationsFeature />} />
+
           <Route path="/" element={<Dashboard />} />
           {/* Original CRUD */}
           <Route path="/models" element={<ModelsPage />} />
@@ -106,10 +122,17 @@ function Shell({ onLogout }) {
           <Route path="/ai/energy-cost" element={<AIEnergyCostPage />} />
           <Route path="/ai/control-mapper" element={<AIControlMapperPage />} />
           <Route path="/ai/ssp-drafter" element={<AISspDrafterPage />} />
+          {/* Apply pass 7 — new AI verbs + disclosure pack + approvals */}
+          <Route path="/ai/redteam-triage" element={<AIRedteamTriagePage />} />
+          <Route path="/ai/drift-narrative" element={<AIDriftNarrativePage />} />
+          <Route path="/ai/bias-summary" element={<AIBiasSummaryPage />} />
+          <Route path="/disclosure-pack" element={<DisclosurePackPage />} />
+          <Route path="/approvals" element={<ApprovalsPage />} />
           {/* Platform */}
           <Route path="/webhooks" element={<WebhooksPage />} />
           {/* MLGov custom views */}
           <Route path="/custom-views" element={<CustomViewsPage />} />
+          <Route path="/model-exception-waiver-board" element={<ModelExceptionWaiverBoard />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

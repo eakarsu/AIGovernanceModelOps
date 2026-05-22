@@ -117,9 +117,32 @@ export const aiEnergyCost          = (p) => request('/ai/energy-cost',          
 export const aiControlMapper       = (p) => request('/ai/control-mapper',        { method: 'POST', body: JSON.stringify(p) });
 export const aiSspDrafter          = (p) => request('/ai/ssp-drafter',           { method: 'POST', body: JSON.stringify(p) });
 
+// Apply pass 7 — 3 new AI verbs
+export const aiRedteamTriage  = (p) => request('/ai/redteam-triage',  { method: 'POST', body: JSON.stringify(p) });
+export const aiDriftNarrative = (p) => request('/ai/drift-narrative', { method: 'POST', body: JSON.stringify(p) });
+export const aiBiasSummary    = (p) => request('/ai/bias-summary',    { method: 'POST', body: JSON.stringify(p) });
+
 export const aiResults = () => request('/ai/results');
 export const aiHistory = (feature) => request(`/ai/history?feature=${encodeURIComponent(feature)}`);
 export const aiSamples = (feature) => request(`/ai/samples?feature=${encodeURIComponent(feature)}`);
+
+// Apply pass 7 — regulator-ready disclosure pack bundler
+export const disclosurePack = {
+  getJson: (modelId) =>
+    request(`/disclosure-pack/${encodeURIComponent(modelId)}`),
+  textUrl: (modelId) =>
+    `${API_BASE}/disclosure-pack/${encodeURIComponent(modelId)}?format=text`,
+};
+
+// Apply pass 7 — approval workflow state machine
+export const approvals = {
+  list:        () => request('/approvals'),
+  get:         (id) => request(`/approvals/${id}`),
+  create:      (data) => request('/approvals', { method: 'POST', body: JSON.stringify(data) }),
+  transition:  (id, data) => request(`/approvals/${id}/transition`, { method: 'POST', body: JSON.stringify(data) }),
+  remove:      (id) => request(`/approvals/${id}`, { method: 'DELETE' }),
+  meta:        () => request('/approvals/_meta/states'),
+};
 
 // Notifications
 export const notifications = {

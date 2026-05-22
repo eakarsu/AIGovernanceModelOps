@@ -79,6 +79,12 @@ app.use('/api/webhooks',      require('./routes/webhooks'));
 
 // MLGov Custom Views (mounted BEFORE any 404 fallthrough)
 app.use('/api/custom-views',  require('./routes/customViews'));
+app.use('/api/model-exception-waiver-board', require('./routes/modelExceptionWaiverBoard'));
+
+// Apply pass 7 — approval workflow + disclosure-pack bundler
+// (mounted BEFORE the 404 fallthrough)
+app.use('/api/approvals',       require('./routes/approvals'));
+app.use('/api/disclosure-pack', require('./routes/disclosure_pack'));
 
 // 404 fallthrough for unknown /api paths
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found', path: req.originalUrl }));

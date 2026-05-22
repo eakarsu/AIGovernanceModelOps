@@ -24,6 +24,9 @@ const governanceLinks = [
   { path: '/risk-register',     label: 'Risk Register' },
   { path: '/redteam-findings',  label: 'Red-team Findings' },
   { path: '/third-parties',     label: 'Third Parties' },
+  // Apply pass 7
+  { path: '/approvals',         label: 'Approvals' },
+  { path: '/disclosure-pack',   label: 'Disclosure Pack' },
 ];
 
 const aiLinks = [
@@ -43,6 +46,10 @@ const aiLinks = [
   { path: '/ai/energy-cost',           label: 'AI · Energy & Cost' },
   { path: '/ai/control-mapper',        label: 'AI · Control Mapper' },
   { path: '/ai/ssp-drafter',           label: 'AI · SSP Drafter' },
+  // Apply pass 7
+  { path: '/ai/redteam-triage',        label: 'AI · Red-team Triage' },
+  { path: '/ai/drift-narrative',       label: 'AI · Drift Narrative' },
+  { path: '/ai/bias-summary',          label: 'AI · Bias Summary' },
 ];
 
 const platformLinks = [

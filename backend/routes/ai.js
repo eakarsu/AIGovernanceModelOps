@@ -63,6 +63,86 @@ router.post('/energy-cost',           handler('energy_cost',           ai.energy
 router.post('/control-mapper',        handler('control_mapper',        ai.controlMapper));
 router.post('/ssp-drafter',           handler('ssp_drafter',           ai.sspDrafter));
 
+// Apply pass 7 — 3 new AI verbs
+router.post('/redteam-triage',  handler('redteam_triage',  ai.redteamTriage));
+
+// drift-narrative and bias-summary auto-hydrate the analyses/audits arrays
+// from past ai_results runs if the caller didn't pass them explicitly. This
+// keeps the request payload small from the UI while still giving the LLM
+// a longitudinal context to summarise.
+router.post('/drift-narrative', async (req, res) => {
+  try {
+    const body = req.body || {};
+    let analyses = Array.isArray(body.analyses) ? body.analyses : null;
+    if (!analyses && body.model_id) {
+      try {
+        const r = await pool.query(
+          `SELECT input, output, created_at FROM ai_results
+           WHERE feature = 'detect_drift'
+             AND (input->>'model' = $1 OR input->>'model_id' = $1)
+           ORDER BY id DESC LIMIT 20`,
+          [String(body.model_id)]
+        );
+        analyses = r.rows.map((row) => ({
+          created_at: row.created_at,
+          window: row.input?.window,
+          baselineMetric: row.input?.baselineMetric,
+          currentMetric: row.input?.currentMetric,
+          signal: row.input?.signal,
+          severity: row.output?.severity,
+          drift_detected: row.output?.drift_detected,
+        }));
+      } catch (e) {
+        console.error('[drift-narrative hydrate]', e.message);
+        analyses = [];
+      }
+    }
+    const out = await ai.driftNarrative({ ...body, analyses: analyses || [] });
+    persist('drift_narrative', { ...body, analyses_count: (analyses || []).length }, out)
+      .catch((e) => console.error('[ai-persist:drift_narrative]', e.message));
+    res.json(out);
+  } catch (e) {
+    console.error('[ai-handler:drift_narrative]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/bias-summary', async (req, res) => {
+  try {
+    const body = req.body || {};
+    let audits = Array.isArray(body.audits) ? body.audits : null;
+    if (!audits && body.model_id) {
+      try {
+        const r = await pool.query(
+          `SELECT input, output, created_at FROM ai_results
+           WHERE feature = 'audit_bias'
+             AND (input->>'model' = $1 OR input->>'model_id' = $1)
+           ORDER BY id DESC LIMIT 25`,
+          [String(body.model_id)]
+        );
+        audits = r.rows.map((row) => ({
+          created_at: row.created_at,
+          dataset: row.input?.dataset,
+          metric: row.input?.metric,
+          score: row.input?.score,
+          overall_assessment: row.output?.overall_assessment,
+          ship_decision: row.output?.ship_decision,
+        }));
+      } catch (e) {
+        console.error('[bias-summary hydrate]', e.message);
+        audits = [];
+      }
+    }
+    const out = await ai.biasSummary({ ...body, audits: audits || [] });
+    persist('bias_summary', { ...body, audits_count: (audits || []).length }, out)
+      .catch((e) => console.error('[ai-persist:bias_summary]', e.message));
+    res.json(out);
+  } catch (e) {
+    console.error('[ai-handler:bias_summary]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // -----------------------------------------------------------------------------
 // Sample-fill scenarios — 5 realistic governance scenarios per AI verb.
 // Frontend fetches GET /api/ai/samples?feature=<verb> and renders 5 buttons
@@ -277,6 +357,48 @@ const AI_SAMPLES = {
       values: { system_name: 'radiology-triage-cnn-v3', framework: 'ISO_42001' } },
     { label: 'HR chatbot llama-3-70b (ISO 42001)',
       values: { system_name: 'hr-policy-chatbot (llama-3-70b)', framework: 'ISO_42001' } },
+  ],
+  // ----- Apply pass 7 samples -----
+  'redteam-triage': [
+    { label: 'Indirect prompt-injection via PDF',
+      values: { finding_id: 'RT-101', model: 'gpt-4o', technique: 'indirect_prompt_injection', severity: 'critical',
+        description: 'Uploaded PDF contained hidden system-prompt override that caused the agent to exfiltrate internal source code to an attacker-controlled email.' } },
+    { label: 'Jailbreak via DAN-style persona',
+      values: { finding_id: 'RT-102', model: 'claude-3-5-sonnet', technique: 'persona_jailbreak', severity: 'high',
+        description: 'Multi-turn persona-swap (DAN variant) bypassed refusal on weapons synthesis prompt; reproduced in 3/5 attempts.' } },
+    { label: 'Model extraction via batched probes',
+      values: { finding_id: 'RT-103', model: 'internal-fraud-classifier-v7', technique: 'model_extraction', severity: 'medium',
+        description: 'Adversary used 480k API queries over 72h to fit a surrogate XGBoost with 92% agreement on hold-out.' } },
+    { label: 'Training-data poisoning (RAG index)',
+      values: { finding_id: 'RT-104', model: 'customer-support-rag-claude35', technique: 'data_poisoning', severity: 'high',
+        description: 'Vendor-submitted KB article contained adversarial trigger phrase causing the RAG agent to recommend a competitor URL.' } },
+    { label: 'Evasion of toxicity classifier',
+      values: { finding_id: 'RT-105', model: 'llama-guard-3-8b', technique: 'evasion_unicode_homoglyphs', severity: 'medium',
+        description: 'Unicode homoglyph substitution reduced toxicity detection recall by 38pp on a 2k adversarial test set.' } },
+  ],
+  'drift-narrative': [
+    { label: 'Fraud classifier — 90d narrative',
+      values: { model_id: 'internal-fraud-classifier-v7', horizon_days: 90 } },
+    { label: 'Resume ranker — 180d narrative',
+      values: { model_id: 'resume-ranker-gpt4o-ft', horizon_days: 180 } },
+    { label: 'Demand forecast — 60d narrative',
+      values: { model_id: 'retail-demand-forecast-xgb', horizon_days: 60 } },
+    { label: 'LLM safety classifier — 30d narrative',
+      values: { model_id: 'llama-guard-3-8b', horizon_days: 30 } },
+    { label: 'Claims NLP — 120d narrative',
+      values: { model_id: 'claude-3-5-sonnet-claims-triage', horizon_days: 120 } },
+  ],
+  'bias-summary': [
+    { label: 'Resume ranker (4 quarters)',
+      values: { model_id: 'resume-ranker-gpt4o-ft', period: 'last 4 quarters' } },
+    { label: 'Credit scorer (2 quarters)',
+      values: { model_id: 'consumer-credit-scorer-gpt4o', period: 'last 2 quarters' } },
+    { label: 'Speech-to-text (annual)',
+      values: { model_id: 'whisper-large-v3', period: 'calendar year 2025' } },
+    { label: 'Fraud classifier (rolling 12m)',
+      values: { model_id: 'internal-fraud-classifier-v7', period: 'rolling 12 months' } },
+    { label: 'Visa risk model (Annex III)',
+      values: { model_id: 'visa-risk-llama3-70b', period: 'EU AI Act Annex III review window' } },
   ],
 };
 
