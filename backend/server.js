@@ -44,59 +44,17 @@ app.use('/api', authenticateToken);
 // Role gate (auditors are read-only across all write methods)
 app.use('/api', requireWriteRole);
 
-// Routes — original 8 CRUD features
-app.use('/api/models', require('./routes/models'));
-app.use('/api/datasets', require('./routes/datasets'));
-app.use('/api/evaluations', require('./routes/evaluations'));
-app.use('/api/deployments', require('./routes/deployments'));
-app.use('/api/audit-logs', require('./routes/audit_logs'));
-app.use('/api/policies', require('./routes/policies'));
-app.use('/api/incidents', require('./routes/incidents'));
-app.use('/api/risk-register', require('./routes/risk_register'));
-
-// New CRUD — 10 entities
-app.use('/api/model-cards',       require('./routes/model_cards'));
-app.use('/api/prompts',           require('./routes/prompts'));
-app.use('/api/ssp',               require('./routes/ssp'));
-app.use('/api/dpia-records',      require('./routes/dpia_records'));
-app.use('/api/redteam-findings',  require('./routes/redteam_findings'));
-app.use('/api/third-parties',     require('./routes/third_parties'));
-app.use('/api/training-runs',     require('./routes/training_runs'));
-app.use('/api/fine-tunes',        require('./routes/fine_tunes'));
-app.use('/api/controls',          require('./routes/controls'));
-app.use('/api/jurisdictions',     require('./routes/jurisdictions'));
-
-// AI routes — 6 original + 10 new endpoints under /api/ai
-app.use('/api/ai', require('./routes/ai'));
-
-// Dashboard
-app.use('/api/dashboard', require('./routes/dashboard'));
-
-// Cross-cutting
-app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/attachments',   require('./routes/attachments'));
-app.use('/api/webhooks',      require('./routes/webhooks'));
-
-// MLGov Custom Views (mounted BEFORE any 404 fallthrough)
-app.use('/api/custom-views',  require('./routes/customViews'));
-app.use('/api/model-exception-waiver-board', require('./routes/modelExceptionWaiverBoard'));
-
-// Apply pass 7 — approval workflow + disclosure-pack bundler
-// (mounted BEFORE the 404 fallthrough)
-app.use('/api/approvals',       require('./routes/approvals'));
-app.use('/api/disclosure-pack', require('./routes/disclosure_pack'));
+// The legacy generic CRUD/AI/backlog routes are intentionally not mounted until
+// they have tenant ownership, immutable evidence, and safe external adapters.
+app.use('/api/governance-workflow', require('./routes/governanceWorkflow'));
 
 // 404 fallthrough for unknown /api paths
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found', path: req.originalUrl }));
 
-// Global error nets (helps surface why the process would otherwise die silently)
-process.on('uncaughtException', (err) => {
-  console.error('[uncaughtException]', err && err.stack || err);
-});
-process.on('unhandledRejection', (reason) => {
-  console.error('[unhandledRejection]', reason && reason.stack || reason);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\nAI Governance ModelOps API running on http://localhost:${PORT}\n`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`\nAI Governance ModelOps API running on http://localhost:${PORT}\n`);
-});
+module.exports = app;

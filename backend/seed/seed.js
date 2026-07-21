@@ -9,10 +9,12 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
   database: process.env.DB_NAME || 'ai_governance_modelops',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  password: process.env.DB_PASSWORD,
 });
 
 async function seed() {
+  if (process.env.RESET_DATABASE !== '1' || process.env.SEED_DEMO_DATA !== '1') throw new Error('Set RESET_DATABASE=1 and SEED_DEMO_DATA=1 for destructive demo seed');
+  if (!process.env.SEED_DEMO_PASSWORD || process.env.SEED_DEMO_PASSWORD.length < 12) throw new Error('SEED_DEMO_PASSWORD must be at least 12 characters');
   const client = await pool.connect();
   try {
     const schema = fs.readFileSync(path.join(__dirname, '../migrations/001_schema.sql'), 'utf8');
@@ -21,10 +23,10 @@ async function seed() {
 
     // ---------- USERS (RBAC: admin / officer / auditor + legacy compliance) ----------
     const demoUsers = [
-      { email: 'compliance@aigov.io', password: 'audit123', name: 'Compliance Lead', role: 'compliance' },
-      { email: 'admin@aigov.io',      password: 'admin123', name: 'Platform Admin',   role: 'admin' },
-      { email: 'officer@aigov.io',    password: 'officer123', name: 'AI Risk Officer', role: 'officer' },
-      { email: 'auditor@aigov.io',    password: 'auditor123', name: 'Read-only Auditor', role: 'auditor' },
+      { email: 'compliance@aigov.invalid', password: process.env.SEED_DEMO_PASSWORD, name: 'Compliance Lead', role: 'compliance' },
+      { email: 'admin@aigov.invalid', password: process.env.SEED_DEMO_PASSWORD, name: 'Platform Admin', role: 'admin' },
+      { email: 'officer@aigov.invalid', password: process.env.SEED_DEMO_PASSWORD, name: 'AI Risk Officer', role: 'officer' },
+      { email: 'auditor@aigov.invalid', password: process.env.SEED_DEMO_PASSWORD, name: 'Read-only Auditor', role: 'auditor' },
     ];
     for (const u of demoUsers) {
       const hash = await bcrypt.hash(u.password, 10);

@@ -7,8 +7,10 @@
     "start": "bash start.sh",
     "backend": "cd backend && npm start",
     "frontend": "cd frontend && npm start",
-    "seed": "cd backend && node seed/seed.js",
-    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "bootstrap": "bash scripts/bootstrap.sh",
+    "migrate": "bash scripts/migrate.sh",
+    "seed:demo": "bash scripts/seed-demo.sh",
+    "test:unit": "node --test backend/tests/*.test.js",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\""
   },
   "devDependencies": {
