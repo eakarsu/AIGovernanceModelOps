@@ -46,6 +46,10 @@ app.use('/api', requireWriteRole);
 
 // The legacy generic CRUD/AI/backlog routes are intentionally not mounted until
 // they have tenant ownership, immutable evidence, and safe external adapters.
+// The authenticated AI workbench remains available when explicitly enabled.
+if (process.env.ENABLE_LEGACY_ROUTES === 'true') {
+  app.use('/api/ai', require('./routes/ai'));
+}
 app.use('/api/governance-workflow', require('./routes/governanceWorkflow'));
 
 // 404 fallthrough for unknown /api paths
