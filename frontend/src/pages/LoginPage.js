@@ -52,7 +52,7 @@ export default function LoginPage({ onLogin }) {
         {error && <div className="ai-error" style={{ marginTop: 10 }}>{error}</div>}
 
         <button className="btn" type="submit" disabled={loading} style={{ marginTop: 16, width: '100%' }}>
-          {loading ? 'Signing in…' : 'Sign in'}
+          {loading ? 'Signing in…' : 'Sign In'}
         </button>
 
         <div className="login-hint">
@@ -69,7 +69,7 @@ export default function LoginPage({ onLogin }) {
               }}
               style={{ margin: '6px 4px 0 0' }}
             >
-              {label}
+              {label === 'Compliance' ? 'Auto Fill Demo Credentials' : label}
             </button>
           ))}
         </div>
