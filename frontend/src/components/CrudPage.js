@@ -27,7 +27,8 @@ function CrudPage({ title, description, api, columns, formFields, defaults, reso
   const [bulkCsv, setBulkCsv] = useState('');
   const [bulkResult, setBulkResult] = useState(null);
   const fileInputRef = useRef(null);
-  const readOnly = isAuditor();
+  const demoReadOnly = process.env.REACT_APP_DEMO_CATALOG_READ_ONLY === 'true';
+  const readOnly = isAuditor() || demoReadOnly;
 
   useEffect(() => { load(); }, []); // eslint-disable-line
 
@@ -63,7 +64,7 @@ function CrudPage({ title, description, api, columns, formFields, defaults, reso
   // ---- Selection + attachments ----
   async function selectRow(row) {
     setSelected(row);
-    if (!resourceKey) { setSelectedAttachments([]); return; }
+    if (!resourceKey || demoReadOnly) { setSelectedAttachments([]); return; }
     const idField = guessIdField(row);
     try {
       const list = await attachmentsApi.list(resourceKey, row[idField] || String(row.id));
@@ -153,7 +154,7 @@ function CrudPage({ title, description, api, columns, formFields, defaults, reso
         <div>
           <h2>{title}</h2>
           {description && <p>{description}</p>}
-          {readOnly && <p style={{ color: '#fcd34d' }}>Read-only mode (auditor role).</p>}
+          {readOnly && <p style={{ color: '#fcd34d' }}>{demoReadOnly ? 'Local sample catalog — read-only.' : 'Read-only mode (auditor role).'}</p>}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={exportCsv}>Export CSV</button>
@@ -189,7 +190,8 @@ function CrudPage({ title, description, api, columns, formFields, defaults, reso
           </thead>
           <tbody>
             {loading && (<tr><td colSpan={columns.length + 1} style={{ padding: 20, color: '#94a3b8' }}>Loading…</td></tr>)}
-            {!loading && !filtered.length && (<tr><td colSpan={columns.length + 1} style={{ padding: 20, color: '#94a3b8' }}>No records.</td></tr>)}
+            {!loading && !error && !filtered.length && (<tr><td colSpan={columns.length + 1} style={{ padding: 20, color: '#94a3b8' }}>No records.</td></tr>)}
+            {!loading && error && (<tr><td colSpan={columns.length + 1} style={{ padding: 20, color: '#94a3b8' }}>Unable to load records. <button className="btn btn-ghost" onClick={load}>Retry</button></td></tr>)}
             {pageRows.map((row) => (
               <tr key={row.id} className="clickable" onClick={() => selectRow(row)}>
                 {columns.map((c) => (
@@ -235,7 +237,7 @@ function CrudPage({ title, description, api, columns, formFields, defaults, reso
                   ))}
               </div>
 
-              {resourceKey && (
+              {resourceKey && !demoReadOnly && (
                 <div style={{ marginTop: 18 }}>
                   <div className="ai-section-title">Attachments / Evidence</div>
                   <div className="table-wrap">

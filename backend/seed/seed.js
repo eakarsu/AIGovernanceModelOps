@@ -17,6 +17,10 @@ async function seed() {
   if (!process.env.SEED_DEMO_PASSWORD || process.env.SEED_DEMO_PASSWORD.length < 12) throw new Error('SEED_DEMO_PASSWORD must be at least 12 characters');
   const client = await pool.connect();
   try {
+    const governed = await client.query("SELECT to_regclass('public.governance_cases') AS table_name");
+    if (governed.rows[0].table_name) {
+      throw new Error('Refusing destructive demo seed on a database with governed workflow tables. Use a disposable, unmigrated database.');
+    }
     const schema = fs.readFileSync(path.join(__dirname, '../migrations/001_schema.sql'), 'utf8');
     await client.query(schema);
     console.log('Schema created.');

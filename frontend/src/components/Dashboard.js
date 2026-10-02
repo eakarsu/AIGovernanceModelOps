@@ -48,6 +48,7 @@ const features = [
 function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
+  const demoReadOnly = process.env.REACT_APP_DEMO_CATALOG_READ_ONLY === 'true';
 
   useEffect(() => { getDashboard().then(setStats).catch(console.error); }, []);
 
@@ -73,6 +74,7 @@ function Dashboard() {
       <div className="dashboard-header">
         <h1>AI Governance Dashboard</h1>
         <p>EU AI Act · NIST AI RMF · ISO/IEC 42001 — one operational view of your AI estate.</p>
+        {demoReadOnly && <p>Local sample catalog · read-only</p>}
       </div>
 
       <div className="stats-grid">

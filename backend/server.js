@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-require('dotenv').config({ path: '../.env' });
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const { authenticateToken, requireWriteRole } = require('./middleware/auth');
 
@@ -51,6 +52,12 @@ if (process.env.ENABLE_LEGACY_ROUTES === 'true') {
   app.use('/api/ai', require('./routes/ai'));
 }
 app.use('/api/governance-workflow', require('./routes/governanceWorkflow'));
+
+// Local sample catalog only: the underlying legacy tables lack tenant keys.
+// The old write-capable CRUD routers remain unmounted.
+if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_LEGACY_ROUTES === 'true') {
+  app.use('/api', require('./routes/demoCatalog'));
+}
 
 // 404 fallthrough for unknown /api paths
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found', path: req.originalUrl }));

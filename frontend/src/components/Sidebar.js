@@ -100,7 +100,7 @@ function Sidebar({ onLogout }) {
       ))}
 
       <div className="sidebar-footer">
-        <NotificationBell />
+        {process.env.REACT_APP_DEMO_CATALOG_READ_ONLY !== 'true' && <NotificationBell />}
         {user && <div className="sidebar-user">{user.name || user.email}{user.role ? ` · ${user.role}` : ''}</div>}
         {onLogout && (
           <button className="btn btn-ghost" onClick={onLogout} style={{ width: '100%', marginTop: 6 }}>

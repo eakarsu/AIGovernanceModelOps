@@ -8,7 +8,8 @@ export default function WebhooksPage() {
   const [deliveries, setDeliveries] = useState([]);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ url: '', secret: '', events: KNOWN_EVENTS.join(','), active: true });
-  const readOnly = isAuditor();
+  const demoReadOnly = process.env.REACT_APP_DEMO_CATALOG_READ_ONLY === 'true';
+  const readOnly = isAuditor() || demoReadOnly;
 
   useEffect(() => { load(); }, []);
 
@@ -48,6 +49,7 @@ export default function WebhooksPage() {
         <div>
           <h2>Webhooks</h2>
           <p>HMAC-signed event delivery for incidents, evaluation failures, control test failures, AI alerts, and red-team findings.</p>
+          {demoReadOnly && <p>Local sample catalog · read-only</p>}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {!readOnly && <button className="btn btn-secondary" onClick={test}>Fire test event</button>}

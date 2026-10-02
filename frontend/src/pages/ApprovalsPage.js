@@ -26,7 +26,8 @@ export default function ApprovalsPage() {
     approver_id: '',
     notes: '',
   });
-  const readOnly = isAuditor();
+  const demoReadOnly = process.env.REACT_APP_DEMO_CATALOG_READ_ONLY === 'true';
+  const readOnly = isAuditor() || demoReadOnly;
   const me = currentUser();
 
   useEffect(() => { load(); }, []);
@@ -103,6 +104,7 @@ export default function ApprovalsPage() {
             Approval workflow state machine — <code>pending → under_review → approved | rejected</code>.
             Every transition records an <code>approver_id</code> in the audit trail.
           </p>
+          {demoReadOnly && <p>Local sample catalog · read-only</p>}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <select value={filter} onChange={(e) => setFilter(e.target.value)}>
@@ -147,7 +149,7 @@ export default function ApprovalsPage() {
                 </td>
               </tr>
             ))}
-            {!loading && visible.length === 0 && (
+            {!loading && !error && visible.length === 0 && (
               <tr><td colSpan={7} style={{ textAlign: 'center', color: '#94a3b8' }}>No approvals.</td></tr>
             )}
           </tbody>
